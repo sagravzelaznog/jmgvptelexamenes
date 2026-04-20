@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examen Kahoot: Integrales Trigonométricas</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --kahoot-red: #e21b3c;
+            --kahoot-blue: #1368ce;
+            --kahoot-yellow: #d89e00;
+            --kahoot-green: #26890c;
+            --kahoot-purple: #46178f;
+            --bg-light: #f2f2f2;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Contenedor Principal */
+        #quiz-container {
+            width: 90%;
+            max-width: 900px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .screen { display: none; }
+        .active { display: block; }
+
+        /* Pantalla de Inicio */
+        h1 { color: var(--kahoot-purple); margin-bottom: 20px; }
+        input[type="text"] {
+            padding: 12px;
+            width: 80%;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .btn-start {
+            background-color: var(--kahoot-purple);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Estilo Kahoot */
+        .question-box {
+            font-size: 24px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #fff;
+            border-bottom: 4px solid #eee;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .option {
+            padding: 25px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .option:active { transform: scale(0.98); }
+        .option:disabled { cursor: not-allowed; opacity: 0.6; }
+
+        .opt-0 { background-color: var(--kahoot-red); }
+        .opt-1 { background-color: var(--kahoot-blue); }
+        .opt-2 { background-color: var(--kahoot-yellow); }
+        .opt-3 { background-color: var(--kahoot-green); }
+
+        /* Timer y progreso */
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        /* Pantalla Resultados */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .summary-table th, .summary-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .summary-table th { background-color: #f8f8f8; }
+
+        /* IMPRESIÓN PDF */
+        @media print {
+            body { background: white; }
+            #quiz-container { box-shadow: none; width: 100%; max-width: 100%; margin: 0; padding: 0; }
+            .no-print { display: none !important; }
+            .screen { display: none !important; }
+            #screen-results { display: block !important; }
+            .summary-table { font-size: 12px; }
+            @page { size: auto; margin: 15mm; }
+        }
+
+        @media (max-width: 600px) {
+            .options-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="quiz-container">
+    <div id="screen-welcome" class="screen active">
+        <h1>Examen: Cálculo Integral</h1>
+        <p>Identificación de Fórmulas y Resultados Trigonométricos</p>
+        <input type="text" id="student-name" placeholder="Escribe tu nombre completo..." autocomplete="off">
+        <br>
+        <button class="btn-start" onclick="initQuiz()">Comenzar Examen</button>
+    </div>
+
+    <div id="screen-quiz" class="screen">
+        <div class="header-info">
+            <span id="name-display"></span>
+            <span id="progress-display">Pregunta 1 de 10</span>
+        </div>
+        <div class="question-box" id="question-text">
+            \[ \int \sin(8x) dx \]
+        </div>
+        <div class="options-grid" id="options-container">
+            </div>
+    </div>
+
+    <div id="screen-results" class="screen">
+        <h2 style="color: var(--kahoot-purple)">Reporte Final de Evaluación</h2>
+        <div id="report-header" style="text-align: left; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+            </div>
+        
+        <table class="summary-table" id="results-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Pregunta (Integral)</th>
+                    <th>Tu Respuesta</th>
+                    <th>Resultado Correcto</th>
+                    <th>Estatus</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div style="margin-top: 30px;" class="no-print">
+            <button class="btn-start" style="background: var(--kahoot-green);" onclick="window.print()">Guardar como PDF</button>
+            <p><small>Usa el PDF para enviarlo por correo al profesor.</small></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // BASE DE DATOS DE EJERCICIOS (Primeros 20 proporcionados)
+    const integralesDb = [
+        { q: "\\int \\sin(8x) dx", a: "-\\frac{1}{8}\\cos 8x + C", distractors: ["\\frac{1}{8}\\cos 8x + C", "-\\cos 8x + C", "-8\\cos 8x + C"] },
+        { q: "\\int \\cos(3x+1) dx", a: "\\frac{1}{3}\\sin(3x+1) + C", distractors: ["-\\frac{1}{3}\\sin(3x+1) + C", "3\\sin(3x+1) + C", "\\sin(3x+1) + C"] },
+        { q: "\\int \\sin(\\frac{x}{3}) dx", a: "-3\\cos\\frac{x}{3} + C", distractors: ["-\\frac{1}{3}\\cos\\frac{x}{3} + C", "3\\cos\\frac{x}{3} + C", "-\\cos\\frac{x}{3} + C"] },
+        { q: "\\int \\cos(\\frac{3x}{2}) dx", a: "\\frac{2}{3}\\sin\\frac{3x}{2} + C", distractors: ["\\frac{3}{2}\\sin\\frac{3x}{2} + C", "-\\frac{2}{3}\\sin\\frac{3x}{2} + C", "2\\sin\\frac{3x}{2} + C"] },
+        { q: "\\int \\sec^2(4x) dx", a: "\\frac{1}{4}\\tan 4x + C", distractors: ["4\\tan 4x + C", "-\\frac{1}{4}\\tan 4x + C", "\\tan 4x + C"] },
+        { q: "\\int \\csc^2(\\frac{1}{2}x) dx", a: "-2\\cot\\frac{x}{2} + C", distractors: ["-\\frac{1}{2}\\cot\\frac{x}{2} + C", "2\\cot\\frac{x}{2} + C", "-\\cot\\frac{x}{2} + C"] },
+        { q: "\\int \\sec(2x+3)\\tan(2x+3) dx", a: "\\frac{1}{2}\\sec(2x+3) + C", distractors: ["2\\sec(2x+3) + C", "-\\frac{1}{2}\\sec(2x+3) + C", "\\sec(2x+3) + C"] },
+        { q: "\\int \\csc(1-x)\\cot(1-x) dx", a: "\\csc(1-x) + C", distractors: ["-\\csc(1-x) + C", "-\\cot(1-x) + C", "\\sin(1-x) + C"] },
+        { q: "\\int \\cos(a-bx) dx", a: "-\\frac{1}{b}\\sin(a-bx) + C", distractors: ["\\frac{1}{b}\\sin(a-bx) + C", "-b\\sin(a-bx) + C", "\\sin(a-bx) + C"] },
+        { q: "\\int \\sin\\sqrt{x} \\frac{dx}{\\sqrt{x}}", a: "-2\\cos\\sqrt{x} + C", distractors: ["-\\frac{1}{2}\\cos\\sqrt{x} + C", "2\\cos\\sqrt{x} + C", "-\\cos\\sqrt{x} + C"] },
+        { q: "\\int \\frac{\\sec(1/x)\\tan(1/x)}{x^2} dx", a: "-\\sec\\frac{1}{x} + C", distractors: ["\\sec\\frac{1}{x} + C", "-\\tan\\frac{1}{x} + C", "-\\frac{1}{x}\\sec\\frac{1}{x} + C"] },
+        { q: "\\int \\frac{\\cos(3/x)}{x^2} dx", a: "-\\frac{1}{3}\\sin\\frac{3}{x} + C", distractors: ["\\frac{1}{3}\\sin\\frac{3}{x} + C", "-3\\sin\\frac{3}{x} + C", "\\sin\\frac{3}{x} + C"] },
+        { q: "\\int (3x-1)\\sin(3x^2-2x) dx", a: "-\\frac{1}{2}\\cos(3x^2-2x) + C", distractors: ["\\frac{1}{2}\\cos(3x^2-2x) + C", "-2\\cos(3x^2-2x) + C", "-\\cos(3x^2-2x) + C"] },
+        { q: "\\int x^2\\cos(x^3+1) dx", a: "\\frac{1}{3}\\sin(x^3+1) + C", distractors: ["3\\sin(x^3+1) + C", "-\\frac{1}{3}\\sin(x^3+1) + C", "\\sin(x^3+1) + C"] },
+        { q: "\\int \\frac{\\sec^2\\sqrt{x}}{\\sqrt{x}} dx", a: 2 + "\\tan\\sqrt{x} + C", distractors: ["\\frac{1}{2}\\tan\\sqrt{x} + C", "-2\\tan\\sqrt{x} + C", "\\tan\\sqrt{x} + C"] },
+        { q: "\\int e^x \\csc^2(e^x) dx", a: "-\\cot(e^x) + C", distractors: ["\\cot(e^x) + C", "-e^x\\cot(e^x) + C", "-\\csc(e^x) + C"] },
+        { q: "\\int \\csc^2(2x-1) dx", a: "-\\frac{1}{2}\\cot(2x-1) + C", distractors: ["\\frac{1}{2}\\cot(2x-1) + C", "-2\\cot(2x-1) + C", "\\cot(2x-1) + C"] },
+        { q: "\\int (\\sin\\frac{x}{2} + \\cos\\frac{x}{2})^2 dx", a: "x - \\cos x + C", distractors: ["x + \\sin x + C", "x + \\cos x + C", "\\sin x - \\cos x + C"] },
+        { q: "\\int \\sin(2x) dx", a: "-\\frac{1}{2}\\cos 2x + C", distractors: ["\\frac{1}{2}\\cos 2x + C", "-2\\cos 2x + C", "-\\cos 2x + C"] },
+        { q: "\\int \\cos(4x) dx", a: "\\frac{1}{4}\\sin 4x + C", distractors: ["-\\frac{1}{4}\\sin 4x + C", "4\\sin 4x + C", "\\sin 4x + C"] }
+    ];
+
+    let selectedQuestions = [];
+    let currentIdx = 0;
+    let studentName = "";
+    let startTime, endTime;
+    let userResults = [];
+
+    function initQuiz() {
+        studentName = document.getElementById('student-name').value.trim();
+        if (studentName === "") {
+            alert("Por favor escribe tu nombre.");
+            return;
+        }
+
+        // Bloqueo por nombre
+        if (localStorage.getItem("exam_done_" + studentName)) {
+            alert("Ya has realizado este examen. No puedes repetirlo.");
+            return;
+        }
+
+        startTime = new Date();
+        document.getElementById('name-display').innerText = "Alumno: " + studentName;
+        
+        // Mezclar y elegir 10
+        selectedQuestions = integralesDb.sort(() => 0.5 - Math.random()).slice(0, 10);
+        
+        document.getElementById('screen-welcome').classList.remove('active');
+        document.getElementById('screen-quiz').classList.add('active');
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const qData = selectedQuestions[currentIdx];
+        document.getElementById('progress-display').innerText = `Pregunta ${currentIdx + 1} de 10`;
+        document.getElementById('question-text').innerHTML = `\\[ ${qData.q} \\]`;
+        
+        // Preparar opciones
+        let options = [qData.a, ...qData.distractors].sort(() => 0.5 - Math.random());
+        const container = document.getElementById('options-container');
+        container.innerHTML = "";
+
+        options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = `option opt-${i}`;
+            btn.innerHTML = `\\( ${opt} \\)`;
+            btn.onclick = () => handleAnswer(opt, qData.a);
+            container.appendChild(btn);
+        });
+
+        MathJax.typeset();
+    }
+
+    function handleAnswer(selected, correct) {
+        // Bloquear botones
+        const btns = document.querySelectorAll('.option');
+        btns.forEach(b => b.disabled = true);
+
+        userResults.push({
+            q: selectedQuestions[currentIdx].q,
+            user: selected,
+            correct: correct,
+            status: selected === correct ? "CORRECTO" : "INCORRECTO"
+        });
+
+        setTimeout(() => {
+            currentIdx++;
+            if (currentIdx < 10) {
+                showQuestion();
+            } else {
+                finishQuiz();
+            }
+        }, 800);
+    }
+
+    function finishQuiz() {
+        endTime = new Date();
+        localStorage.setItem("exam_done_" + studentName, true);
+        
+        document.getElementById('screen-quiz').classList.remove('active');
+        document.getElementById('screen-results').classList.add('active');
+
+        // Header del reporte
+        const aciertos = userResults.filter(r => r.status === "CORRECTO").length;
+        const duracion = Math.floor((endTime - startTime) / 1000);
+        
+        document.getElementById('report-header').innerHTML = `
+            <p><strong>Alumno:</strong> ${studentName}</p>
+            <p><strong>Resultado:</strong> ${aciertos} de 10 aciertos (${aciertos * 10}%)</p>
+            <p><strong>Inicio:</strong> ${startTime.toLocaleString()}</p>
+            <p><strong>Término:</strong> ${endTime.toLocaleString()}</p>
+            <p><strong>Tiempo total:</strong> ${duracion} segundos</p>
+        `;
+
+        // Tabla de resultados
+        const tbody = document.querySelector('#results-table tbody');
+        userResults.forEach((r, i) => {
+            const row = `<tr>
+                <td>${i+1}</td>
+                <td>\\( ${r.q} \\)</td>
+                <td style="color: ${r.status === 'CORRECTO' ? 'green' : 'red'}">\\( ${r.user} \\)</td>
+                <td>\\( ${r.correct} \\)</td>
+                <td><strong>${r.status}</strong></td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+
+        MathJax.typeset();
+    }
+</script>
+
+</body>
+</html>
